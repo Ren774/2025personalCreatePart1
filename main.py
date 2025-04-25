@@ -83,5 +83,5 @@ def main(page: ft.Page):  # アプリのエントリーポイント（ページ�
     # resizeイベントを登録（ウィンドウサイズ変更時にon_resizeを呼ぶ）
     page.on_resize = on_resize
 
-# アプリケーションを起動し、main関数をエントリーポイントに指定
-ft.app(target=main)
+# アプリケーションを起動
+ft.app(target=main, view=ft.WEB_BROWSER)  
