@@ -54,16 +54,6 @@ def main(page: ft.Page):
 
     # ----------- ダイアログの設定 -----------
 
-    # 「追加」ボタンを押したときに表示するダイアログを作成
-    dialog = ft.AlertDialog(
-        title=ft.Text("追加"),                # ダイアログのタイトル
-        content=ft.Text("追加ボタンが押されました"),  # ダイアログ内のメッセージ
-        actions=[
-            # OKボタン（押すとダイアログを閉じる）
-            ft.TextButton("OK", on_click=lambda e: close_dialog())
-        ]
-    )
-
     # ダイアログを開く関数
     def open_dialog(e):
         page.dialog = dialog    # 表示するダイアログを指定
@@ -72,9 +62,46 @@ def main(page: ft.Page):
         # print("ダイアログを開く")
 
     # ダイアログを閉じる関数
-    def close_dialog():
-        dialog.open = False     # ダイアログを閉じる
-        page.update()           # ページ更新（閉じたことを反映）
+    def close_dialog(e):
+        title = title_input.value
+        syousai = detail_input.value
+        r = category_radio.value
+
+        # ここで取得できるので、必要ならprintしたり保存できる
+        print(f"タイトル: {title}")
+        print(f"詳細: {syousai}")
+        print(f"カテゴリ: {r}")
+
+        dialog.open = False
+        page.update()
+
+    # --- 入力フィールドの定義 ---
+    title_input = ft.TextField(label="タイトルを入力")    # タイトル入力欄
+    detail_input = ft.TextField(label="詳細を入力")        # 詳細入力欄
+
+    # --- ラジオボタンの定義 ---
+    category_radio = ft.RadioGroup(
+        content=ft.Column([
+            ft.Radio(value="遊び", label="遊び"),
+            ft.Radio(value="就活", label="就活"),
+            ft.Radio(value="学校", label="学校")
+        ])
+    )
+
+    # 「追加」ボタンを押したときに表示するダイアログを作成
+    dialog = ft.AlertDialog(
+        title=ft.Text("予定を追加"),  # ダイアログタイトル
+        content=ft.Column([
+            title_input,              # タイトル入力欄
+            detail_input,             # 詳細入力欄
+            category_radio            # カテゴリ選択ラジオボタン
+        ]),
+        actions=[
+            ft.TextButton("OK", on_click=close_dialog)  # OKボタン
+        ]
+    )
+
+    
 
     # 「追加」ボタンが押された時に、open_dialog() を呼ぶように設定
     button_a.on_click = open_dialog
