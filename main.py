@@ -2,73 +2,90 @@
 """
 0J01013 川上 冠
 Fletライブラリを使ったシンプルなUIアプリのサンプル
-画面上にタイトルテキストと2つのボタン（追加・削除）を表示
+「追加」ボタンを押すとダイアログを表示する機能付き
 """
 
-import flet as ft  # Fletライブラリをインポート（Flutter風のUIをPythonで作れる）
-import sqlite3     # SQL
+import flet as ft  # Fletライブラリをインポート（FlutterライクなUIツール）
+import sqlite3     # SQLiteデータベースを操作するライブラリ
 
-def main(page: ft.Page):  # アプリのエントリーポイント（ページオブジェクトを受け取る）
-    page.title = "TO-DO 887"  # ウィンドウのタイトルを設定
+def main(page: ft.Page):
+    # ページタイトルを設定
+    page.title = "TO-DO 887"
 
-    # データベースに接続
+    # データベースに接続（ファイルが無ければ自動で作成）
     conn = sqlite3.connect("TODO.db")
     cursor = conn.cursor()
 
-    # ------------------------------
-    # 表示するテキストの作成
-    # ------------------------------
-    text = ft.Text("予定を管理", color="blue", size=30)  # 青色でサイズ30のテキスト
+    # 画面に表示するテキスト（タイトル）
+    text = ft.Text("予定を管理", color="blue", size=30)
 
-    # ------------------------------
-    # 2つのボタンを作成（ElevatedButton：押しやすい立体ボタン）
-    # ------------------------------
-    button_a = ft.ElevatedButton("追加")  # 「追加」ボタン
-    button_b = ft.ElevatedButton("削除")  # 「削除」ボタン
+    # 「追加」ボタンと「削除」ボタンを作成
+    button_a = ft.ElevatedButton("追加")  # 後で押した時の処理を設定する
+    button_b = ft.ElevatedButton("削除")
 
-    # ------------------------------
-    # 各要素をContainerで包んで、Stack上で配置位置（left, top）を指定する
-    # ※ Containerを使うことで自由な位置に置ける
-    # ------------------------------
+    # 各要素をContainerでラップして、配置位置を設定
     text_container = ft.Container(
         content=text,
-        left=page.width * 0.01,    # 横幅の1%の位置にテキストを表示
-        top=page.height * 0.05,    # 高さの5%の位置にテキストを表示
+        left=page.width * 0.01,   # 横幅の1%の位置
+        top=page.height * 0.05,   # 高さの5%の位置
     )
 
     button_a_container = ft.Container(
         content=button_a,
-        left=page.width * 0.1,     # 横幅の10%に「追加」ボタン
-        top=page.height * 0.3,     # 高さの30%に配置
+        left=page.width * 0.1,    # 横幅の10%の位置
+        top=page.height * 0.3,    # 高さの30%の位置
     )
 
     button_b_container = ft.Container(
         content=button_b,
-        left=page.width * 0.3,     # 横幅の30%に「削除」ボタン
-        top=page.height * 0.3,     # 高さの30%（横に並べる）
+        left=page.width * 0.3,    # 横幅の30%の位置
+        top=page.height * 0.3,    # 高さの30%の位置
     )
 
-    # ------------------------------
-    # Stackレイアウト：複数の要素を重ねて自由に配置できるレイアウト
-    # expand=True にすると画面いっぱいに広がる
-    # ------------------------------
+    # Stackレイアウトに、上で作った要素をまとめる
     stack = ft.Stack(
         [
-            text_container,       # テキスト表示コンテナ
-            button_a_container,   # 追加ボタンのコンテナ
-            button_b_container    # 削除ボタンのコンテナ
+            text_container,       # タイトル
+            button_a_container,   # 追加ボタン
+            button_b_container    # 削除ボタン
         ],
-        expand=True  # Stackが画面全体に広がるようにする
+        expand=True  # Stack全体を画面に広げる
     )
+
+    # ----------- ダイアログの設定 -----------
+
+    # 「追加」ボタンを押したときに表示するダイアログを作成
+    dialog = ft.AlertDialog(
+        title=ft.Text("追加"),                # ダイアログのタイトル
+        content=ft.Text("追加ボタンが押されました"),  # ダイアログ内のメッセージ
+        actions=[
+            # OKボタン（押すとダイアログを閉じる）
+            ft.TextButton("OK", on_click=lambda e: close_dialog())
+        ]
+    )
+
+    # ダイアログを開く関数
+    def open_dialog(e):
+        page.dialog = dialog    # 表示するダイアログを指定
+        dialog.open = True      # ダイアログを開く
+        page.update()           # ページ更新（変更を反映）
+        # print("ダイアログを開く")
+
+    # ダイアログを閉じる関数
+    def close_dialog():
+        dialog.open = False     # ダイアログを閉じる
+        page.update()           # ページ更新（閉じたことを反映）
+
+    # 「追加」ボタンが押された時に、open_dialog() を呼ぶように設定
+    button_a.on_click = open_dialog
 
     # Stackをページに追加
     page.add(stack)
+    page.add(dialog)
 
-    # ------------------------------
-    # ウィンドウサイズ変更時に要素の位置を自動で再計算するためのイベント
-    # ------------------------------
+    # ウィンドウサイズが変わったときの動きを定義
     def on_resize(e):
-        # 画面サイズ変更後の位置を再計算（再代入）
+        # サイズ変更後の位置を再設定
         text_container.left = page.width * 0.01
         text_container.top = page.height * 0.05
 
@@ -78,10 +95,11 @@ def main(page: ft.Page):  # アプリのエントリーポイント（ページ�
         button_b_container.left = page.width * 0.3
         button_b_container.top = page.height * 0.3
 
-        page.update()  # 変更内容を画面に反映する
+        page.update()  # 変更を反映する
 
-    # resizeイベントを登録（ウィンドウサイズ変更時にon_resizeを呼ぶ）
+    # リサイズイベントを登録
     page.on_resize = on_resize
 
-# アプリケーションを起動
-ft.app(target=main, view=ft.WEB_BROWSER)  
+# アプリを起動（デスクトップアプリ）
+# ft.app(target=main)
+ft.app(target=main, view=ft.WEB_BROWSER)
