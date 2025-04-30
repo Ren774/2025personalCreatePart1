@@ -12,9 +12,22 @@ def main(page: ft.Page):
     # ページタイトルを設定
     page.title = "TO-DO 887"
 
-    # データベースに接続（ファイルが無ければ自動で作成）
+    # データベースに接続
     conn = sqlite3.connect("TODO.db")
     cursor = conn.cursor()
+
+    # テーブルがなければ作成（新しいカラム構成）
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS todo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            detail TEXT,
+            category TEXT,
+            is_done INTEGER DEFAULT 0,
+            date TEXT
+        )
+    ''')
+    conn.commit()
 
     # 画面に表示するテキスト（タイトル）
     text = ft.Text("予定を管理", color="blue", size=30)
@@ -67,11 +80,20 @@ def main(page: ft.Page):
         syousai = detail_input.value
         r = category_radio.value
 
-        # ここで取得できるので、必要ならprintしたり保存できる
+        # 入力内容を確認（デバッグ用）
         print(f"タイトル: {title}")
         print(f"詳細: {syousai}")
         print(f"カテゴリ: {r}")
 
+        # --- データベースに保存 ---
+        cursor.execute(
+            "INSERT INTO todo (title, detail, category) VALUES (?, ?, ?)",
+            (title, syousai, r)
+        )
+        conn.commit()  # 変更を保存
+        print("データベースに保存しました！")
+
+        # ダイアログを閉じる
         dialog.open = False
         page.update()
 
