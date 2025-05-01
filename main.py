@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-0J01013 川上 冠
-Fletライブラリを使ったシンプルなUIアプリのサンプル
-「追加」ボタンを押すとダイアログを表示する機能付き
-"""
-
 import flet as ft  # Fletライブラリをインポート（FlutterライクなUIツール）
 import sqlite3     # SQLiteデータベースを操作するライブラリ
 
@@ -13,7 +7,7 @@ def main(page: ft.Page):
     page.title = "TO-DO 887"
 
     # データベースに接続
-    conn = sqlite3.connect("TODO.db")
+    conn = sqlite3.connect("todo.db")
     cursor = conn.cursor()
 
     # テーブルがなければ作成（新しいカラム構成）
@@ -65,6 +59,32 @@ def main(page: ft.Page):
         expand=True  # Stack全体を画面に広げる
     )
 
+    # ==============================
+    # 【★追加】TODOリストを表示するためのListViewを定義
+    # ==============================
+    todo_list_view = ft.ListView(
+        expand=True,    # ListViewは全体を広げて表示
+        spacing=10,     # 各項目の間隔
+        padding=10,     # ListView内のパディング
+        auto_scroll=False  # 自動スクロールを無効
+    )
+
+    # ==============================
+    # 【★追加】DBからTODOアイテムを読み込む関数を定義
+    # ==============================
+    def load_todo_items():
+        # リスト表示をクリアしてから再描画
+        todo_list_view.controls.clear()  
+        cursor.execute("SELECT title, detail, category FROM todo")  # データベースからすべてのTODOを選択
+        rows = cursor.fetchall()  # 結果を取得
+        for row in rows:
+            title, detail, category = row
+            # 各TODOアイテムをTextウィジェットとしてListViewに追加
+            todo_list_view.controls.append(
+                ft.Text(f"■ {title}｜{detail}｜{category}")
+            )
+        page.update()  # 画面更新
+
     # ----------- ダイアログの設定 -----------
 
     # ダイアログを開く関数
@@ -72,7 +92,6 @@ def main(page: ft.Page):
         page.dialog = dialog    # 表示するダイアログを指定
         dialog.open = True      # ダイアログを開く
         page.update()           # ページ更新（変更を反映）
-        # print("ダイアログを開く")
 
     # ダイアログを閉じる関数
     def close_dialog(e):
@@ -93,9 +112,13 @@ def main(page: ft.Page):
         conn.commit()  # 変更を保存
         print("データベースに保存しました！")
 
-        # ダイアログを閉じる
-        dialog.open = False
-        page.update()
+        dialog.open = False  # ダイアログを閉じる
+        title_input.value = ""  # 入力フォームを空にする
+        detail_input.value = ""  # 入力フォームを空にする
+        category_radio.value = None  # ラジオボタンを未選択にする
+        page.update()  # ページ更新
+
+        load_todo_items()   # 保存後にTODO一覧を更新
 
     # --- 入力フィールドの定義 ---
     title_input = ft.TextField(label="タイトルを入力")    # タイトル入力欄
@@ -103,7 +126,7 @@ def main(page: ft.Page):
 
     # --- ラジオボタンの定義 ---
     category_radio = ft.RadioGroup(
-        content=ft.Column([
+        content=ft.Column([ 
             ft.Radio(value="遊び", label="遊び"),
             ft.Radio(value="就活", label="就活"),
             ft.Radio(value="学校", label="学校")
@@ -123,32 +146,41 @@ def main(page: ft.Page):
         ]
     )
 
-    
+    # ダイアログを表示可能にする
+    page.add(dialog)
 
     # 「追加」ボタンが押された時に、open_dialog() を呼ぶように設定
     button_a.on_click = open_dialog
 
-    # Stackをページに追加
-    page.add(stack)
-    page.add(dialog)
+    # ==============================
+    # TODOリストの表示をページに追加
+    # ==============================
+    layout = ft.Column(
+        controls=[
+            stack,            # Stackレイアウト
+            todo_list_view    # TODOリスト表示
+        ],
+        expand=True
+    )
+    
+    # pageにlayoutを追加
+    page.add(layout)
 
-    # ウィンドウサイズが変わったときの動きを定義
+    # 初回TODOアイテムのロード
+    load_todo_items()
+
+    # ウィンドウサイズが変わった際のレイアウト調整
     def on_resize(e):
-        # サイズ変更後の位置を再設定
         text_container.left = page.width * 0.01
         text_container.top = page.height * 0.05
-
         button_a_container.left = page.width * 0.1
         button_a_container.top = page.height * 0.3
-
         button_b_container.left = page.width * 0.3
         button_b_container.top = page.height * 0.3
-
-        page.update()  # 変更を反映する
+        page.update()
 
     # リサイズイベントを登録
     page.on_resize = on_resize
 
 # アプリを起動（デスクトップアプリ）
-# ft.app(target=main)
 ft.app(target=main, view=ft.WEB_BROWSER)
