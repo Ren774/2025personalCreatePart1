@@ -10,6 +10,9 @@ def main(page: ft.Page):
     conn = sqlite3.connect("todo.db")
     cursor = conn.cursor()
 
+    # 選択中の編集対象のTODO IDを保存するための変数を定義
+    edit_target_id = None
+
     # テーブルがなければ作成（新しいカラム構成）
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS todo (
@@ -73,17 +76,102 @@ def main(page: ft.Page):
     # 【★追加】DBからTODOアイテムを読み込む関数を定義
     # ==============================
     def load_todo_items():
-        # リスト表示をクリアしてから再描画
-        todo_list_view.controls.clear()  
-        cursor.execute("SELECT title, detail, category FROM todo")  # データベースからすべてのTODOを選択
-        rows = cursor.fetchall()  # 結果を取得
+        # ListViewの中身を一度すべて削除（リセット）
+        # → 重複表示を防ぐため、毎回クリアしてから再構築
+        todo_list_view.controls.clear()
+
+        # SQLiteデータベースからTODO全件を取得
+        # 各カラムは (id, title, detail, category, is_done)
+        cursor.execute("SELECT id, title, detail, category, is_done FROM todo")
+        rows = cursor.fetchall()  # 結果をすべて取得
+
+        # 各TODOデータを1つずつ処理
         for row in rows:
-            title, detail, category = row
-            # 各TODOアイテムをTextウィジェットとしてListViewに追加
-            todo_list_view.controls.append(
-                ft.Text(f"■ {title}｜{detail}｜{category}")
+            # データベースの1レコードを変数に展開
+            todo_id, title, detail, category, is_done = row
+
+            # 状態のテキスト化（0 → 未完了、1 → 完了）
+            status = "未完了" if is_done == 0 else "完了"
+
+            # 画面に表示する文字列を組み立て（見た目重視）
+            todo_text = f"■ {title}｜{detail}｜{category}｜{status}"
+
+            # ★ここが重要：表示用のTextを「タップ可能」にする
+            # FletのGestureDetectorでTextをラップすることで「クリック検出」が可能になる
+            # on_tapは無名関数（lambda）で、対象のTODO情報を渡す
+            todo_item = ft.GestureDetector(
+                content=ft.Text(todo_text),  # 表示部分
+                on_tap=lambda e, i=todo_id, t=title, d=detail, c=category:
+                    open_edit_dialog(i, t, d, c)  # タップ時に編集ダイアログを開く
             )
-        page.update()  # 画面更新
+
+            # 作成したタップ可能なTODO表示をListViewに追加
+            todo_list_view.controls.append(todo_item)
+
+        # ListViewを更新して画面に反映
+        page.update()
+
+
+        # ★★ 編集用テキストフィールドなどを再利用可能にする（入力欄）
+    edit_title_input = ft.TextField(label="タイトル")
+    edit_detail_input = ft.TextField(label="詳細")
+    edit_category_radio = ft.RadioGroup(
+        content=ft.Column([
+            ft.Radio(value="遊び", label="遊び"),
+            ft.Radio(value="就活", label="就活"),
+            ft.Radio(value="学校", label="学校")
+        ])
+    )
+
+    # ★★ 編集用ダイアログの定義
+    edit_dialog = ft.AlertDialog(
+        title=ft.Text("予定を編集"),
+        content=ft.Column([
+            edit_title_input,
+            edit_detail_input,
+            edit_category_radio
+        ]),
+        actions=[
+            ft.TextButton("保存", on_click=lambda e: save_edited_todo())  # 保存ボタン
+        ]
+    )
+    page.add(edit_dialog)  # ページに追加
+
+    # ★★ 編集確定処理：DB更新→表示再描画
+    def save_edited_todo():
+        global edit_target_id
+
+        # 入力値を取得
+        new_title = edit_title_input.value
+        new_detail = edit_detail_input.value
+        new_category = edit_category_radio.value
+
+        # データベースを更新
+        cursor.execute(
+            "UPDATE todo SET title=?, detail=?, category=? WHERE id=?",
+            (new_title, new_detail, new_category, edit_target_id)
+        )
+        conn.commit()
+
+        # ダイアログを閉じる＆リストを再読み込み
+        edit_dialog.open = False
+        page.update()
+        load_todo_items()  # リスト更新
+
+    # ★★ 編集ダイアログを開く関数（指定されたTODO情報で入力欄を埋める）
+    def open_edit_dialog(todo_id, title, detail, category):
+        global edit_target_id
+        edit_target_id = todo_id
+
+        # 入力欄に現在の値をセット
+        edit_title_input.value = title
+        edit_detail_input.value = detail
+        edit_category_radio.value = category
+
+        # ダイアログを表示
+        page.dialog = edit_dialog
+        edit_dialog.open = True
+        page.update()
 
     # ----------- ダイアログの設定 -----------
 
