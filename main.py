@@ -63,7 +63,7 @@ def main(page: ft.Page):
     )
 
     # ==============================
-    # 【★追加】TODOリストを表示するためのListViewを定義
+    # TODOリストを表示するためのListViewを定義
     # ==============================
     todo_list_view = ft.ListView(
         expand=True,    # ListViewは全体を広げて表示
@@ -73,7 +73,7 @@ def main(page: ft.Page):
     )
 
     # ==============================
-    # 【★追加】DBからTODOアイテムを読み込む関数を定義
+    # DBからTODOアイテムを読み込む関数を定義
     # ==============================
     def load_todo_items():
         # ListViewの中身を一度すべて削除（リセット）
@@ -123,13 +123,22 @@ def main(page: ft.Page):
         ])
     )
 
+    # ★★ 完了状態を選択するラジオボタンを追加
+    edit_is_done_radio = ft.RadioGroup(
+        content=ft.Column([
+            ft.Radio(value="0", label="未完了"),
+            ft.Radio(value="1", label="完了")
+        ])
+    )
+
     # ★★ 編集用ダイアログの定義
     edit_dialog = ft.AlertDialog(
         title=ft.Text("予定を編集"),
         content=ft.Column([
             edit_title_input,
             edit_detail_input,
-            edit_category_radio
+            edit_category_radio,
+            edit_is_done_radio  # 完了/未完了のラジオボタンを追加
         ]),
         actions=[
             ft.TextButton("保存", on_click=lambda e: save_edited_todo())  # 保存ボタン
@@ -145,11 +154,13 @@ def main(page: ft.Page):
         new_title = edit_title_input.value
         new_detail = edit_detail_input.value
         new_category = edit_category_radio.value
+        new_is_done = int(edit_is_done_radio.value)  # 完了/未完了状態を取得
+
 
         # データベースを更新
         cursor.execute(
-            "UPDATE todo SET title=?, detail=?, category=? WHERE id=?",
-            (new_title, new_detail, new_category, edit_target_id)
+            "UPDATE todo SET title=?, detail=?, category=?, is_done=? WHERE id=?",
+            (new_title, new_detail, new_category, new_is_done, edit_target_id)
         )
         conn.commit()
 
@@ -167,6 +178,10 @@ def main(page: ft.Page):
         edit_title_input.value = title
         edit_detail_input.value = detail
         edit_category_radio.value = category
+        # 完了状態（is_done）をラジオボタンで設定
+        # 0 → 未完了、1 → 完了
+        edit_is_done_radio.value = "0" if not edit_target_id else "1"
+
 
         # ダイアログを表示
         page.dialog = edit_dialog
