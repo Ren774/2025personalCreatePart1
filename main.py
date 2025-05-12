@@ -31,7 +31,7 @@ def main(page: ft.Page):
 
     # 「追加」ボタンと「削除」ボタンを作成
     button_a = ft.ElevatedButton("追加")  # 後で押した時の処理を設定する
-    button_b = ft.ElevatedButton("削除")
+    # button_b = ft.ElevatedButton("削除")
 
     # 各要素をContainerでラップして、配置位置を設定
     text_container = ft.Container(
@@ -46,18 +46,18 @@ def main(page: ft.Page):
         top=page.height * 0.3,    # 高さの30%の位置
     )
 
-    button_b_container = ft.Container(
+    '''button_b_container = ft.Container(
         content=button_b,
         left=page.width * 0.3,    # 横幅の30%の位置
         top=page.height * 0.3,    # 高さの30%の位置
-    )
+    )'''
 
     # Stackレイアウトに、上で作った要素をまとめる
     stack = ft.Stack(
         [
             text_container,       # タイトル
             button_a_container,   # 追加ボタン
-            button_b_container    # 削除ボタン
+            # button_b_container    # 削除ボタン
         ],
         expand=True  # Stack全体を画面に広げる
     )
@@ -324,8 +324,8 @@ def main(page: ft.Page):
         text_container.top = page.height * 0.05
         button_a_container.left = page.width * 0.1
         button_a_container.top = page.height * 0.3
-        button_b_container.left = page.width * 0.3
-        button_b_container.top = page.height * 0.3
+        # button_b_container.left = page.width * 0.3
+        # button_b_container.top = page.height * 0.3
         page.update()
 
     # リサイズイベントを登録
