@@ -112,7 +112,7 @@ def main(page: ft.Page):
         page.update()
 
 
-        # ★★ 編集用テキストフィールドなどを再利用可能にする（入力欄）
+    # ★★ 編集用テキストフィールドなどを再利用可能にする（入力欄）
     edit_title_input = ft.TextField(label="タイトル")
     edit_detail_input = ft.TextField(label="詳細")
     edit_category_radio = ft.RadioGroup(
@@ -133,17 +133,39 @@ def main(page: ft.Page):
 
     # ★★ 編集用ダイアログの定義
     edit_dialog = ft.AlertDialog(
-        title=ft.Text("予定を編集"),
-        content=ft.Column([
-            edit_title_input,
-            edit_detail_input,
-            edit_category_radio,
-            edit_is_done_radio  # 完了/未完了のラジオボタンを追加
-        ]),
-        actions=[
-            ft.TextButton("保存", on_click=lambda e: save_edited_todo())  # 保存ボタン
-        ]
-    )
+    title=ft.Text("予定を編集"),  # ダイアログのタイトル
+
+    # contentに、入力フォームとボタンを含めたカスタムUIを構築
+    content=ft.Column([
+        edit_title_input,        # タイトルのテキストフィールド
+        edit_detail_input,       # 詳細のテキストフィールド
+        edit_category_radio,     # カテゴリ選択用のラジオボタン
+        edit_is_done_radio,      # 完了/未完了のラジオボタン
+
+        # ボタンを並べるRow（横並びレイアウト）
+        ft.Row(
+            [
+                # 左側に「削除」ボタンを配置
+                ft.TextButton(
+                    "削除",
+                    on_click=lambda e: delete_todo()  # 削除処理を呼び出す
+                ),
+
+                # 真ん中にスペーサー（空のContainerなど）を入れて左右を離す
+                ft.Container(expand=True),
+
+                # 右側に「保存」ボタンを配置
+                ft.TextButton(
+                    "保存",
+                    on_click=lambda e: save_edited_todo()  # 保存処理を呼び出す
+                )
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN  # 両端に配置
+        )
+    ]),
+
+    # 通常のactionsは使わない（content内にボタンを組み込んでいるため）
+)
     page.add(edit_dialog)  # ページに追加
 
     # ★★ 編集確定処理：DB更新→表示再描画
@@ -168,6 +190,30 @@ def main(page: ft.Page):
         edit_dialog.open = False
         page.update()
         load_todo_items()  # リスト更新
+
+    # 削除処理：DB更新→表示再描画
+    def delete_todo():
+        global edit_target_id
+
+        # 入力値を取得
+        new_title = edit_title_input.value
+        new_detail = edit_detail_input.value
+        new_category = edit_category_radio.value
+        new_is_done = int(edit_is_done_radio.value)  # 完了/未完了状態を取得
+
+
+        # データベースを更新
+        cursor.execute(
+            "delete from todo WHERE id=?",
+            (edit_target_id,)
+        )
+        conn.commit()
+
+        # ダイアログを閉じる＆リストを再読み込み
+        edit_dialog.open = False
+        page.update()
+        load_todo_items()  # リスト更新
+
 
     # ★★ 編集ダイアログを開く関数（指定されたTODO情報で入力欄を埋める）
     def open_edit_dialog(todo_id, title, detail, category):
