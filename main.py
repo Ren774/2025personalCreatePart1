@@ -2,7 +2,29 @@
 import flet as ft  # Fletライブラリをインポート（FlutterライクなUIツール）
 import sqlite3     # SQLiteデータベースを操作するライブラリ
 
+# ジェミニ関連
+import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+from secret_config import API_KEY
+
 def main(page: ft.Page):
+
+    # .envファイルの読み込み
+    load_dotenv()
+    
+    # API-KEYの設定
+    GOOGLE_API_KEY = API_KEY
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+
+    # メッセージを送信して返答を取得
+    #response = model.generate_content("日本一の山は？")
+
+    # 返答を表示
+    #print(response.text)
+
     # ページタイトルを設定
     page.title = "TO-DO 887"
 
@@ -93,8 +115,12 @@ def main(page: ft.Page):
             # 状態のテキスト化（0 → 未完了、1 → 完了）
             status = "未完了" if is_done == 0 else "完了"
 
+            # ジェミニに送る文章を生成
+            response = model.generate_content(f"以下の内容のTODOに関するアドバイスを教えてください。{detail}")
+
+
             # 画面に表示する文字列を組み立て（見た目重視）
-            todo_text = f"■ {title}｜{detail}｜{category}｜{status}"
+            todo_text = f"■ {title}｜{detail}｜{category}｜{status}|{response.text}"
 
             # ★ここが重要：表示用のTextを「タップ可能」にする
             # FletのGestureDetectorでTextをラップすることで「クリック検出」が可能になる
